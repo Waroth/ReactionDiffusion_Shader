@@ -1,0 +1,88 @@
+#define dA 1.0
+#define dB 0.5
+#define f 0.03
+#define k 0.062
+#define t 1.0
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float noise( in vec2 x ){return texture(iChannel2, x*.01).x;}
+
+float fbm(in vec2 p)
+{	
+	float z=2.;
+	float rz = 0.;
+	vec2 bp = p;
+	for (float i= 1.;i < 6.;i++)
+	{
+		rz+= abs((noise(p)-0.5)*2.)/z;
+		z = z*2.;
+		p = p*2.;
+	}
+	return rz;
+}
+
+vec2 laplace(vec2 fC) 
+{
+
+    vec2 sum;
+    vec2 uv = fC / iResolution.xy;
+    
+    vec2 n  = (fC + vec2( 0.0, 1.0)) / iResolution.xy;
+    vec2 ne = (fC + vec2( 1.0, 1.0)) / iResolution.xy;
+    vec2 e  = (fC + vec2( 1.0, 0.0)) / iResolution.xy;
+    vec2 se = (fC + vec2( 1.0,-1.0)) / iResolution.xy;
+    vec2 s  = (fC + vec2( 0.0,-1.0)) / iResolution.xy;
+    vec2 sw = (fC + vec2(-1.0,-1.0)) / iResolution.xy;
+    vec2 w  = (fC + vec2(-1.0, 0.0)) / iResolution.xy;
+    vec2 nw = (fC + vec2(-1.0, 1.0)) / iResolution.xy;
+    
+    sum =  texture(iChannel0, uv).xy * -1.0;
+    sum += texture(iChannel0, n).xy * 0.2;
+    sum += texture(iChannel0, e).xy * 0.2;
+    sum += texture(iChannel0, s).xy * 0.2;
+    sum += texture(iChannel0, w).xy * 0.2;
+    sum += texture(iChannel0, nw).xy * 0.05;
+    sum += texture(iChannel0, sw).xy * 0.05;
+    sum += texture(iChannel0, ne).xy * 0.05;
+    sum += texture(iChannel0, se).xy * 0.05;
+
+    return sum;
+
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    
+    vec2 r = iResolution.xy;
+    vec2 uv = fragCoord / iResolution.xy;
+    
+    vec2 grid = texture(iChannel0,uv).xy;
+ 
+    
+    vec2 next;
+    
+    float a = grid.x;
+    float b = grid.y;
+    
+    vec2 inputter = uv*=(iResolution.x+100.)/(iResolution.y-100.)*10.;
+   
+   vec2 fkgrid = vec2(fbm(inputter),fbm(inputter/2.+iGlobalTime/100.));
+    
+    fkgrid.x = 0.018 + fkgrid.x * 0.062;
+    fkgrid.y = 0.0515 + fkgrid.y * 0.025;
+    
+    float ap, bp;
+    
+    ap = a + (dA * laplace(fragCoord).x - a * b * b + (fkgrid.x * (1.-a)) * t);
+    bp = b + (dB * laplace(fragCoord).y + a * b * b - (fkgrid.y + fkgrid.x) * b * t);
+    
+    //ap = a + (dA * laplace(fragCoord).x - a * b * b + (f * (1.-a)) * t);
+    //bp = b + (dB * laplace(fragCoord).y + a * b * b - (k + f) * b * t);
+    
+    fragColor = vec4(ap,bp,0.0,1.0);
+    
+}
+

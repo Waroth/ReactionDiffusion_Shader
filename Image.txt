@@ -1,0 +1,39 @@
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float noise( in vec2 x ){return texture(iChannel1, x*.01).x;}
+
+float fbm(in vec2 p)
+{	
+	float z=2.;
+	float rz = 0.;
+	vec2 bp = p;
+	for (float i= 1.;i < 6.;i++)
+	{
+		rz+= abs((noise(p)-0.5)*2.)/z;
+		z = z*2.;
+		p = p*2.;
+	}
+	return rz;
+}
+
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+	vec2 uv = fragCoord.xy / iResolution.xy;
+
+    vec2 cols = texture(iChannel0, uv).xy;
+    
+    float ttl = abs((cols.x - cols.y));
+    
+    vec3 ttls = vec3(ttl,ttl,ttl);
+    
+    vec2 shifter = uv - cols;
+    
+    float ma = fbm(uv*=(iResolution.x+100.)/(iResolution.y-100.)*10.);
+    
+    vec3 mas = vec3(ma,ma,ma);
+    
+    fragColor = vec4(ttls,1.0);
+}
